@@ -37,7 +37,8 @@ python3 -m unittest -v test_api
   Every monitor counts requests across all services; only 500 through 599 are errors.
 - Evaluation accepts `{"now": ...}` for reproducible results, or `{}` to use the
   current clock. `now` follows the timestamp rules and cannot move backward per
-  monitor, though equal times are allowed.
+  monitor, though equal times are allowed. Retention also requires a shared
+  nondecreasing evaluation time across monitors; see `REVIEW-PR.md`.
 - A window includes events in `(now - window_seconds, now]`: the start is excluded
   and the end included. Out-of-order and future events may be ingested. Events
   later than `now` are excluded; late ingestion can change a subsequent evaluation
@@ -69,7 +70,8 @@ This service is intended for local exploration.
 ### State and capacity
 
 - Events, monitors, and history live in one process's memory. Restarting loses them.
-- Events and histories have no size limit. Evaluation cost grows with stored events.
+- Evaluation prunes old events; history has no size limit. Time retention does not
+  impose a hard memory bound. See `REVIEW-PR.md` for retention guarantees and limits.
 - The HTTP server handles one request at a time.
 
 ### Integrations and deployment

@@ -28,6 +28,7 @@ class MonitoringService:
         previous_now = monitor.last_evaluation.get("now")
         if previous_now is not None and now < previous_now:
             raise ValueError("now must not precede this monitor's last evaluation")
+        self.store.prune_events(now)
         summary = summarize(self.store.events, monitor.window_seconds, now)
         fraction = summary["error_fraction"]
         if fraction is None:

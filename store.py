@@ -50,6 +50,7 @@ class Store:
         self.events = []
         self.monitors = {}
         self.next_monitor_id = 1
+        self.last_pruned_at = None
 
     def add_event(self, timestamp, service, status):
         number(timestamp, "timestamp")
@@ -77,3 +78,26 @@ class Store:
         if monitor_id not in self.monitors:
             raise KeyError("monitor not found")
         return self.monitors[monitor_id]
+
+
+    def prune_events(self, now):
+        """Discard events outside the configured retention horizon; return a count.
+
+        Cleanup shares a nondecreasing clock across monitors. With no monitors,
+        keep the events so the first monitor can use the available history.
+        """
+        number(now, "now")
+        if self.last_pruned_at is not None and now < self.last_pruned_at:
+            raise ValueError("now must not precede the last cleanup")
+        self.last_pruned_at = now
+        if not self.monitors:
+            return 0
+        window = min(monitor.window_seconds for monitor in self.monitors.values())
+        cutoff = now - window
+        removed = 0
+        for event in self.events:
+            if event.timestamp > cutoff:
+                break
+            self.events.remove(event)
+            removed += 1
+        return removed
